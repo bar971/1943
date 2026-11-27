@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>1943: Battaglia delle Midway - Arcade Clone</title>
   <style>
     * {
@@ -12,11 +12,17 @@
       user-select: none;
     }
 
+    html, body {
+      overscroll-behavior: none;
+      touch-action: manipulation;
+    }
+
     body {
       background: radial-gradient(circle at top, #132238 0%, #070c14 75%);
       color: #e8f1ff;
       font-family: "Courier New", Courier, monospace;
       min-height: 100vh;
+      min-height: 100dvh;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -51,6 +57,97 @@
       width: 100%;
       height: 100%;
       cursor: crosshair;
+      touch-action: none;
+    }
+
+    .touch-controls {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 6;
+      display: none;
+    }
+
+    body.mobile-playing .touch-controls {
+      display: block;
+    }
+
+    .touch-btn {
+      position: absolute;
+      pointer-events: auto;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(255, 255, 255, 0.45);
+      background: rgba(10, 22, 38, 0.52);
+      color: #ffffff;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      font-weight: 900;
+      font-size: 17px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+      -webkit-tap-highlight-color: transparent;
+      touch-action: none;
+    }
+
+    .touch-btn:active {
+      transform: scale(0.92);
+      background: rgba(255, 207, 77, 0.35);
+    }
+
+    #touchPauseBtn {
+      top: calc(48px + env(safe-area-inset-top, 0px));
+      right: calc(12px + env(safe-area-inset-right, 0px));
+      width: 40px;
+      height: 40px;
+      font-size: 14px;
+    }
+
+    #touchBoltBtn {
+      bottom: calc(62px + env(safe-area-inset-bottom, 0px));
+      right: calc(14px + env(safe-area-inset-right, 0px));
+      width: 54px;
+      height: 54px;
+      font-size: 22px;
+      border-color: rgba(255, 213, 79, 0.75);
+      color: #fff176;
+      background: rgba(45, 36, 10, 0.58);
+    }
+
+    #touchBoltBtn.disabled {
+      opacity: 0.32;
+      border-color: rgba(150, 170, 190, 0.35);
+      color: #90a4ae;
+    }
+
+    body.mobile-playing {
+      padding: 0;
+    }
+
+    body.mobile-playing .cabinet {
+      max-width: none;
+      width: 100vw;
+      height: 100dvh;
+      gap: 0;
+    }
+
+    body.mobile-playing .stage-wrapper {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100dvh;
+      max-width: none;
+      max-height: none;
+      aspect-ratio: auto;
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+    }
+
+    body.mobile-playing .side-panel {
+      display: none;
     }
 
     .crt-overlay {
@@ -354,6 +451,10 @@
     <div class="stage-wrapper">
       <canvas id="gameCanvas" width="640" height="820"></canvas>
       <div id="crtOverlay" class="crt-overlay hidden"></div>
+      <div id="touchControls" class="touch-controls">
+        <button id="touchPauseBtn" class="touch-btn" aria-label="Pausa">||</button>
+        <button id="touchBoltBtn" class="touch-btn" aria-label="Fulmine">&#9889;</button>
+      </div>
 
       <!-- Schermata iniziale -->
       <div id="titleOverlay" class="overlay">
@@ -464,16 +565,32 @@
     (() => {
       "use strict";
 
-      // Riferimenti DOM e Canvas (con supporto HiDPI / Retina per grafica HD nitida)
+      // Riferimenti DOM e Canvas (con supporto HiDPI / Retina e schermo intero mobile)
       const canvas = document.getElementById("gameCanvas");
       const ctx = canvas.getContext("2d");
       const W = 640;
-      const H = 820;
+      let H = 820;
       const DPR = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = W * DPR;
-      canvas.height = H * DPR;
-      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-      ctx.imageSmoothingEnabled = true;
+
+      function isMobileDevice() {
+        return window.innerWidth <= 820 || window.matchMedia("(pointer: coarse)").matches;
+      }
+
+      function resizeCanvas() {
+        if (document.body.classList.contains("mobile-playing")) {
+          const ratio = window.innerHeight / Math.max(1, window.innerWidth);
+          H = Math.max(760, Math.min(1380, Math.round(W * ratio)));
+        } else {
+          H = 820;
+        }
+        canvas.width = W * DPR;
+        canvas.height = H * DPR;
+        ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+        ctx.imageSmoothingEnabled = true;
+        if (game && game.player) {
+          game.player.y = Math.max(44, Math.min(H - 56, game.player.y));
+        }
+      }
 
       const ui = {
         titleOverlay: document.getElementById("titleOverlay"),
@@ -481,6 +598,8 @@
         stageClearOverlay: document.getElementById("stageClearOverlay"),
         endOverlay: document.getElementById("endOverlay"),
         crtOverlay: document.getElementById("crtOverlay"),
+        touchPauseBtn: document.getElementById("touchPauseBtn"),
+        touchBoltBtn: document.getElementById("touchBoltBtn"),
         diffDesc: document.getElementById("diffDesc"),
         startBtn: document.getElementById("startBtn"),
         resumeBtn: document.getElementById("resumeBtn"),
@@ -810,6 +929,15 @@
         y: H - 96,
         firing: false
       };
+      const touch = {
+        active: false,
+        id: null,
+        lastX: 0,
+        lastY: 0,
+        pendingDx: 0,
+        pendingDy: 0,
+        lastTapTime: 0
+      };
       let selectedDiffKey = "normal";
       let highScore = Number(localStorage.getItem("midway1943_best") || 0);
       ui.hudBest.textContent = highScore;
@@ -972,8 +1100,15 @@
         }
       }
 
+      function setMobileFullscreen(active) {
+        const enable = active && isMobileDevice();
+        document.body.classList.toggle("mobile-playing", enable);
+        resizeCanvas();
+      }
+
       function startNewGame() {
         AudioEngine.init();
+        setMobileFullscreen(true);
         game.diff = DIFFICULTIES[selectedDiffKey];
         game.levelIndex = 0;
         game.score = 0;
@@ -1412,6 +1547,8 @@
         if (!p || game.state === "PLAYER_DYING" || game.state === "GAME_OVER") return;
         game.state = "PLAYER_DYING";
         mouse.firing = false;
+        touch.active = false;
+        touch.id = null;
         p.energy = 0;
         p.deathTimer = 1.65;
         p.deathMax = 1.65;
@@ -1615,6 +1752,7 @@
 
           if (mx !== 0 || my !== 0) {
             mouse.active = false;
+            touch.active = false;
             if (mx !== 0 && my !== 0) {
               mx *= 0.7071;
               my *= 0.7071;
@@ -1623,6 +1761,17 @@
             p.vy = my * p.speed;
             p.x = Math.max(28, Math.min(W - 28, p.x + p.vx * dt));
             p.y = Math.max(44, Math.min(H - 56, p.y + p.vy * dt));
+          } else if (touch.active) {
+            // Spostamento relativo 1:1 sincrono col dito (non copre l'aereo)
+            const prevX = p.x;
+            const prevY = p.y;
+            p.x = Math.max(28, Math.min(W - 28, p.x + touch.pendingDx));
+            p.y = Math.max(44, Math.min(H - 56, p.y + touch.pendingDy));
+            touch.pendingDx = 0;
+            touch.pendingDy = 0;
+            p.vx = dt > 0 ? (p.x - prevX) / dt : 0;
+            p.vy = dt > 0 ? (p.y - prevY) / dt : 0;
+            mx = Math.max(-1, Math.min(1, p.vx / p.speed));
           } else if (mouse.active) {
             const targetX = Math.max(28, Math.min(W - 28, mouse.x));
             const targetY = Math.max(44, Math.min(H - 56, mouse.y));
@@ -1676,10 +1825,10 @@
           }
         }
 
-        // Fuoco giocatore (tastiera o tasto sinistro del mouse)
+        // Fuoco giocatore (tastiera, tasto sinistro mouse o tocco attivo su mobile)
         if (
           game.state !== "PLAYER_DYING" &&
-          (keys["Space"] || keys["KeyZ"] || mouse.firing) &&
+          (keys["Space"] || keys["KeyZ"] || mouse.firing || touch.active) &&
           p.fireCooldown <= 0 &&
           p.loopTimer <= 0
         ) {
@@ -2165,6 +2314,12 @@
           ui.hudWeaponText.textContent = `${Math.ceil(p.weaponTimer)}s`;
           ui.weaponBar.style.width = `${wPct}%`;
         }
+
+        const boltReady =
+          (game.state === "PLAYING" || game.state === "BOSS_FIGHT" || game.state === "BOSS_WARNING") &&
+          p.specialCooldown <= 0 &&
+          p.energy > 18;
+        ui.touchBoltBtn.classList.toggle("disabled", !boltReady);
       }
 
       // Atmosfere di luce per ciascuno dei 5 livelli
@@ -3225,6 +3380,102 @@
           keys[code] = false;
         }
         mouse.firing = false;
+        touch.active = false;
+        touch.id = null;
+        touch.pendingDx = 0;
+        touch.pendingDy = 0;
+      });
+
+      window.addEventListener("resize", resizeCanvas);
+
+      // Controlli touch mobile: movimento relativo 1:1, autofire al tocco, doppio tap per Loop
+      canvas.addEventListener(
+        "touchstart",
+        (ev) => {
+          ev.preventDefault();
+          AudioEngine.init();
+          if (touch.id === null && ev.changedTouches.length > 0) {
+            const t = ev.changedTouches[0];
+            touch.id = t.identifier;
+            touch.active = true;
+            touch.lastX = t.clientX;
+            touch.lastY = t.clientY;
+            touch.pendingDx = 0;
+            touch.pendingDy = 0;
+            mouse.active = false;
+
+            const now = performance.now();
+            if (now - touch.lastTapTime < 280) {
+              if (game.state === "PLAYING" || game.state === "BOSS_FIGHT" || game.state === "BOSS_WARNING") {
+                triggerLoop();
+              }
+              touch.lastTapTime = 0;
+            } else {
+              touch.lastTapTime = now;
+            }
+          }
+        },
+        { passive: false }
+      );
+
+      canvas.addEventListener(
+        "touchmove",
+        (ev) => {
+          ev.preventDefault();
+          if (touch.id === null) return;
+          const rect = canvas.getBoundingClientRect();
+          if (rect.width <= 0 || rect.height <= 0) return;
+          for (const t of ev.changedTouches) {
+            if (t.identifier === touch.id) {
+              const dx = ((t.clientX - touch.lastX) / rect.width) * W;
+              const dy = ((t.clientY - touch.lastY) / rect.height) * H;
+              touch.pendingDx += dx;
+              touch.pendingDy += dy;
+              touch.lastX = t.clientX;
+              touch.lastY = t.clientY;
+              break;
+            }
+          }
+        },
+        { passive: false }
+      );
+
+      function endTouch(ev) {
+        for (const t of ev.changedTouches) {
+          if (t.identifier === touch.id) {
+            touch.active = false;
+            touch.id = null;
+            touch.pendingDx = 0;
+            touch.pendingDy = 0;
+            break;
+          }
+        }
+      }
+      canvas.addEventListener("touchend", endTouch);
+      canvas.addEventListener("touchcancel", endTouch);
+
+      ui.touchPauseBtn.addEventListener("touchstart", (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        togglePause();
+      }, { passive: false });
+      ui.touchPauseBtn.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        togglePause();
+      });
+
+      ui.touchBoltBtn.addEventListener("touchstart", (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        if (game.state === "PLAYING" || game.state === "BOSS_FIGHT" || game.state === "BOSS_WARNING") {
+          triggerLightning();
+        }
+      }, { passive: false });
+      ui.touchBoltBtn.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        if (game.state === "PLAYING" || game.state === "BOSS_FIGHT" || game.state === "BOSS_WARNING") {
+          triggerLightning();
+        }
       });
 
       // Guida col mouse: movimento sul Canvas, click sinistro fuoco, click destro Loop (evita)
@@ -3277,10 +3528,12 @@
       });
       ui.restartBtn.addEventListener("click", () => {
         hideAllOverlays();
+        setMobileFullscreen(false);
         ui.titleOverlay.classList.remove("hidden");
         game.state = "TITLE";
       });
 
+      resizeCanvas();
       initScenery();
       requestAnimationFrame(loop);
     })();
