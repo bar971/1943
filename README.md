@@ -15,8 +15,9 @@ Tra le idee che lo resero leggendario:
 
 ## Caratteristiche di questo clone
 
-- **Unico file HTML autonomo (`index.html`):** zero dipendenze esterne, nessuna installazione richiesta, audio retro generato interamente via **Web Audio API**.
+- **Unico file HTML autonomo (`index.html` minificato + `src/index.html` sorgente leggibile):** zero dipendenze esterne, nessuna installazione richiesta, audio retro generato interamente via **Web Audio API**.
 - **Grafica HD vettoriale su Canvas 2D (HiDPI):** gradienti metallici, riflessi, lampi di sparo, onde d'urto, fumo persistente sui boss danneggiati, atmosfere di luce distinte per ogni livello e filtro **CRT** opzionale.
+- **Giocabilità Mobile Fullscreen:** a partita avviata su smartphone/tablet l'area di gioco occupa tutto il display (`100vw x 100dvh`) adattando le proporzioni allo schermo, con guida a un dito in sincrono 1:1, fuoco automatico al tocco, doppio tap per il Loop e pulsanti touch traslucidi per Fulmine e Pausa.
 - **3 livelli di difficoltà selezionabili:** `FACILE`, `NORMALE` e `ARCADE`.
 - **5 missioni progressive con boss dedicati:**
   1. *Avanguardia del Pacifico* - Boss: **Incrociatore Tone**
@@ -29,15 +30,15 @@ Tra le idee che lo resero leggendario:
 
 ## Comandi
 
-| Azione | Mouse | Tastiera |
-| --- | --- | --- |
-| Muovi il P-38 | Movimento sul Canvas | `WASD` o `Frecce` |
-| Fuoco | `Click Sinistro` (tieni premuto) | `Spazio` o `Z` |
-| Loop (schiva proiettili) | `Click Destro` | `Shift` o `X` |
-| Fulmine (-15 Energia) | - | `E` o `C` |
-| Pausa | Pulsante UI | `P` |
-| Audio On/Off | Pulsante UI | `M` |
-| Filtro CRT On/Off | Pulsante UI | `V` |
+| Azione | Mobile (Touch) | Mouse | Tastiera |
+| --- | --- | --- | --- |
+| Muovi il P-38 | Trascina 1 dito (relativo 1:1) | Movimento sul Canvas | `WASD` o `Frecce` |
+| Fuoco | Automatico al tocco | `Click Sinistro` (tieni premuto) | `Spazio` o `Z` |
+| Loop (schiva proiettili) | Doppio tap | `Click Destro` | `Shift` o `X` |
+| Fulmine (-15 Energia) | Pulsante touch `⚡` | - | `E` o `C` |
+| Pausa | Pulsante touch `||` | Pulsante UI | `P` |
+| Audio On/Off | - | Pulsante UI | `M` |
+| Filtro CRT On/Off | - | Pulsante UI | `V` |
 
 ## Esecuzione in locale
 
